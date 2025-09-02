@@ -1,15 +1,25 @@
-streamlit
-yt-dlp
-moviepy
-opencv-python
-scenedetect
-faster-whisper
-transformers
-Pillow
-groq
-python-dotenv
-soundfile
-python-multipart
+# Core ML & AI
 torch
-torchvision
-torchaudio
+transformers
+faster-whisper
+pillow
+soundfile
+numpy
+
+# Video / Audio processing
+scenedetect
+opencv-python-headless
+ffmpeg-python
+yt-dlp
+
+# Web app
+streamlit
+python-dotenv
+
+# LLM integration
+langchain
+langchain-core
+langchain-groq
+
+# Utilities
+concurrent-log-handler
