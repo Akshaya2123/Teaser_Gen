@@ -1,0 +1,12 @@
+streamlit
+yt-dlp
+moviepy
+opencv-python
+scenedetect
+faster-whisper
+transformers
+Pillow
+groq
+python-dotenv
+soundfile
+python-multipart
