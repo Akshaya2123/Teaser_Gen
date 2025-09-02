@@ -10,3 +10,6 @@ groq
 python-dotenv
 soundfile
 python-multipart
+torch
+torchvision
+torchaudio
