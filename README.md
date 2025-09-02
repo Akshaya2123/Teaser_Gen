@@ -1,4 +1,4 @@
-#Batch 15 - Department of Computer Science and Engineering (Velammal Engineering College)
+# Batch 15 - Department of Computer Science and Engineering (Velammal Engineering College)
 ## Use Case - Teaser Creation from Video
 ## Team Members 
 1. Sangamithra V (Team Leader)
