@@ -291,7 +291,7 @@ class GroqLLM:
         except Exception as e:
             raise RuntimeError("langchain_groq not installed or import failed.") from e
 
-        groq_api_key = "YOUR_GROQ_KEY" or os.getenv("GROQ_API_KEY")
+        groq_api_key = "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" or os.getenv("GROQ_API_KEY")
         if not groq_api_key:
             raise RuntimeError("GROQ_API_KEY missing. Set it in env or pass as argument.")
         self.llm = ChatGroq(
@@ -572,6 +572,4 @@ def main():
         show_output_options()
 
 if __name__ == "__main__":
-
     main()
-
