@@ -41,7 +41,7 @@ MIN_SCENE_LENGTH = float(os.getenv("MIN_SCENE_LENGTH", "3.0"))
 MAX_SCENE_LENGTH = float(os.getenv("MAX_SCENE_LENGTH", "20.0"))
 MAX_SCENES = int(os.getenv("MAX_SCENES", "20"))
 ENSURE_COVERAGE = True
-UPSCALE = os.getenv("UPSCALE", "1280:720")
+UPSCALE = os.getenv("UPSCALE", "3840:2160")
 BGM_PATH = os.getenv("BGM_PATH", None)
 
 EMOTIONAL_KEYWORDS = [
@@ -304,6 +304,8 @@ def create_final_teaser(video_path: Path, selected_clips, output_name: str = "te
     srt_path = Path("teaser.srt")
     final_output = Path(output_name)
 
+    # Always sort selected_clips by start_time to preserve original order
+    selected_clips = sorted(selected_clips, key=lambda c: c["start_time"])
     total, pruned = 0.0, []
     for clip in selected_clips:
         d = clip["duration"]
@@ -338,13 +340,31 @@ def create_final_teaser(video_path: Path, selected_clips, output_name: str = "te
             f.write(f"{format_srt_time(seg.start)} --> {format_srt_time(seg.end)}\n")
             f.write(seg.text.strip() + "\n\n")
 
-
+    # --- Fade in/out logic ---
+    # Get teaser duration
+    result = subprocess.run([
+        "ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(base_teaser)
+    ], capture_output=True, text=True)
+    try:
+        teaser_duration = float(result.stdout.strip())
+    except Exception:
+        teaser_duration = target_length
+    fade_dur = min(1.0, teaser_duration * 0.1)
+    # Video fade filter
+    fade_vf = f"fade=t=in:st=0:d={fade_dur},fade=t=out:st={teaser_duration-fade_dur}:d={fade_dur}"
+    # Audio fade filter
+    fade_af = f"afade=t=in:ss=0:d={fade_dur},afade=t=out:st={teaser_duration-fade_dur}:d={fade_dur}"
+    # Use zscale for 4K upscaling with spline36 filter for best quality
+    vf = f"zscale=w=3840:h=2160:filter=spline36,subtitles={srt_path},{fade_vf}"
     cmd = [
-        "ffmpeg","-y","-i",str(base_teaser),"-vf",f"scale={UPSCALE}:flags=lanczos,subtitles={srt_path}"
+        "ffmpeg","-y","-i",str(base_teaser),
+        "-vf", vf,
+        "-af", fade_af
     ]
     if BGM_PATH and Path(BGM_PATH).exists():
         cmd += ["-i",BGM_PATH,"-filter_complex","[1:a]volume=0.15[a1];[0:a][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]","-map","0:v","-map","[aout]"]
-    cmd += ["-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k","-shortest",str(final_output)]
+    # Use slow preset and low CRF for best quality
+    cmd += ["-c:v","libx264","-preset","slow","-crf","15","-c:a","aac","-b:a","192k","-shortest",str(final_output)]
     subprocess.run(cmd, check=True)
 
     print("🎬 Final teaser saved to", final_output)
@@ -434,31 +454,19 @@ def handle_video_input():
 
 def get_user_preferences():
     st.header("Step 2: Teaser Preferences")
-    col1, col2 = st.columns(2)
+    col1 = st.columns(1)[0]
     with col1:
         duration = st.selectbox("Teaser duration:", ["30 seconds", "60 seconds", "Custom"], key="duration_select")
         if duration == "Custom":
             custom_duration = st.slider("Custom duration (seconds):", 10, 120, 30, key="custom_dur")
-
             st.session_state.duration = custom_duration
         else:
             st.session_state.duration = int(duration.split()[0])
         tone = st.selectbox("Tone:", ["Professional", "Exciting", "Educational", "Inspirational"], key="tone_select")
         st.session_state.tone = tone
-    with col2:
-        use_branding = st.checkbox("Add branding elements", key="use_branding")
-        if use_branding:
-            logo = st.file_uploader("Upload logo (optional):", type=["png","jpg","jpeg"], key="logo_upload")
-            tagline = st.text_input("Tagline (optional):", key="tagline_input")
-            if logo: st.session_state.logo = logo
-            if tagline: st.session_state.tagline = tagline
-
-    add_subtitles_temp = st.checkbox("Add automatic subtitles", value=st.session_state.add_subtitles, key="add_subs_widget")
-    add_music_temp = st.checkbox("Add background music", value=st.session_state.add_music, key="add_music_widget")
-
+        add_subtitles_temp = st.checkbox("Add automatic subtitles", value=st.session_state.add_subtitles, key="add_subs_widget")
     if st.button("Generate Teaser →", key="generate_btn"):
         st.session_state.add_subtitles = add_subtitles_temp
-        st.session_state.add_music = add_music_temp
         st.session_state.current_step = "processing"
         st.rerun()
 
@@ -480,10 +488,13 @@ def process_video():
             st.session_state.video_path = str(video_path)
             progress_bar.progress(10)
         except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
             st.error(f"Error downloading YouTube video: {e}")
+            st.text(tb)
+            print(tb)
             st.session_state.current_step = "video_input"
             st.rerun()
-
             return
     else:
         video_path = Path(st.session_state.video_path)
@@ -494,10 +505,13 @@ def process_video():
         chunks = chunk_video(video_path)
         progress_bar.progress(25)
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
         st.error(f"Scene detection failed: {e}")
+        st.text(tb)
+        print(tb)
         st.session_state.current_step = "video_input"
         st.rerun()
-
         return
 
     # analyze
@@ -509,10 +523,13 @@ def process_video():
         st.session_state.analysis = metadata
         progress_bar.progress(65)
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
         st.error(f"Clip analysis failed: {e}")
+        st.text(tb)
+        print(tb)
         st.session_state.current_step = "video_input"
         st.rerun()
-
         return
 
     # select
@@ -523,10 +540,13 @@ def process_video():
             selected = metadata[:2]
         progress_bar.progress(75)
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
         st.error(f"Clip selection failed: {e}")
+        st.text(tb)
+        print(tb)
         st.session_state.current_step = "video_input"
         st.rerun()
-
         return
 
     # create teaser
@@ -536,10 +556,13 @@ def process_video():
         st.session_state.teaser_path = str(teaser)
         progress_bar.progress(95)
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
         st.error(f"Teaser creation failed: {e}")
+        st.text(tb)
+        print(tb)
         st.session_state.current_step = "video_input"
         st.rerun()
-
         return
 
     status_text.text("Generating caption...")

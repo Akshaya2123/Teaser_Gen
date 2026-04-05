@@ -244,7 +244,7 @@ def create_final_teaser(video_path: Path, selected_clips, target_length=30, add_
         ffmpeg_cmd += ["-ss",str(clip["start_time"]),"-to",str(clip["end_time"]),"-i",str(video_path)]
         filter_parts.append(f"[{i}:v:0][{i}:a:0]")
     filter_complex = "".join(filter_parts)+f"concat=n={len(pruned)}:v=1:a=1[outv][outa]"
-    ffmpeg_cmd += ["-filter_complex",filter_complex,"-map","[outv]","-map","[outa]","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k",str(base_teaser)]
+    ffmpeg_cmd += ["-filter_complex",filter_complex,"-map","[outv]","-map","[outa]","-c:v","libx264","-preset","ultrafast","-crf","23","-c:a","aac","-b:a","128k",str(base_teaser)]
     subprocess.run(ffmpeg_cmd, check=True)
 
     # regenerate subtitles from teaser itself (ensures sync)
@@ -255,23 +255,35 @@ def create_final_teaser(video_path: Path, selected_clips, target_length=30, add_
             f.write(f"{format_srt_time(seg.start)} --> {format_srt_time(seg.end)}\n")
             f.write(seg.text.strip() + "\n\n")
 
-    cmd = [
-        "ffmpeg","-y","-i",str(base_teaser),"-vf",f"scale={UPSCALE}:flags=lanczos,subtitles={srt_path}"
-    ]
+    # Calculate fade durations (1 second or 10% of teaser length, whichever is smaller)
+    import ffmpeg
+    import subprocess
+    import re
+    # Get teaser duration
+    result = subprocess.run([
+        "ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(base_teaser)
+    ], capture_output=True, text=True)
+    try:
+        teaser_duration = float(result.stdout.strip())
+    except Exception:
+        teaser_duration = target_length
+    fade_dur = min(1.0, teaser_duration * 0.1)
+    # Video fade filter
+    fade_vf = f"fade=t=in:st=0:d={fade_dur},fade=t=out:st={teaser_duration-fade_dur}:d={fade_dur}"
+    # Audio fade filter
+    fade_af = f"afade=t=in:ss=0:d={fade_dur},afade=t=out:st={teaser_duration-fade_dur}:d={fade_dur}"
     if add_subtitles:
-        cmd = [
-            "ffmpeg","-y","-i",str(base_teaser),
-            "-vf",f"scale={UPSCALE}:flags=lanczos,subtitles={srt_path}"
-        ]
+        vf = f"scale={UPSCALE}:flags=lanczos,subtitles={srt_path},{fade_vf}"
     else:
-        cmd = [
-            "ffmpeg","-y","-i",str(base_teaser),
-            "-vf",f"scale={UPSCALE}:flags=lanczos"
-        ]
-    
+        vf = f"scale={UPSCALE}:flags=lanczos,{fade_vf}"
+    cmd = [
+        "ffmpeg","-y","-i",str(base_teaser),
+        "-vf", vf,
+        "-af", fade_af
+    ]
     if BGM_PATH and Path(BGM_PATH).exists():
         cmd += ["-i",BGM_PATH,"-filter_complex","[1:a]volume=0.15[a1];[0:a][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]","-map","0:v","-map","[aout]"]
-    cmd += ["-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k","-shortest",str(final_output)]
+    cmd += ["-c:v","libx264","-preset","ultrafast","-crf","23","-c:a","aac","-b:a","128k","-shortest",str(final_output)]
     subprocess.run(cmd, check=True)
 
     print("🎬 Final teaser saved to", final_output)

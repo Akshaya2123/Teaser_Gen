@@ -1,4 +1,5 @@
 import streamlit as st
+from typing import Optional
 import tempfile
 import os
 from pathlib import Path
@@ -99,9 +100,6 @@ def init_session_state():
         
     if "add_subtitles" not in st.session_state:
         st.session_state.add_subtitles = True
-        
-    if "add_music" not in st.session_state:
-        st.session_state.add_music = True
 
     if "analysis" not in st.session_state:
         st.session_state.analysis = None
@@ -230,16 +228,13 @@ def handle_video_input():
 def get_user_preferences():
     st.markdown("<h1 style='text-align: center; font-size: 2.2rem; font-weight: 700; margin-bottom: 1rem; color: #1a1a1a;'>Customize Your Teaser</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; font-size: 1.2rem; color: #666; margin-bottom: 2rem;'>Adjust settings to match your preferences</p>", unsafe_allow_html=True)
-    
+
     with st.container():
         st.markdown("""
         <div style='background: white; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); border: 1px solid rgba(0, 0, 0, 0.05);'>
         """, unsafe_allow_html=True)
-        
         st.header("Step 2: Teaser Preferences")
-        
         col1 = st.columns(1)[0]
-        
         with col1:
             st.subheader("Teaser Specifications")
             duration = st.selectbox(
@@ -247,56 +242,41 @@ def get_user_preferences():
                 ["30 seconds", "60 seconds", "Custom"],
                 key="duration_select"
             )
-            
             if duration == "Custom":
                 custom_duration = st.slider("Custom duration (seconds):", 10, 120, 30, key="custom_dur")
                 st.session_state.duration = custom_duration
             else:
                 st.session_state.duration = int(duration.split()[0])
-                
             tone = st.selectbox(
                 "Tone:",
                 ["Professional", "Exciting", "Educational", "Inspirational", "Compelling"],
                 key="tone_select"
             )
             st.session_state.tone = tone
-            
-       # with col2:
-        #    st.subheader("Branding Options")
-            
-         #   use_branding = st.checkbox("Add branding elements", key="use_branding")
-            
-          #  if use_branding:
-           #     logo = st.file_uploader("Upload logo (optional):", type=["png", "jpg", "jpeg"], key="logo_upload")
-            #    if logo:
-             #       st.session_state.logo = logo
-                    
-              #  tagline = st.text_input("Tagline (optional):", key="tagline_input")
-               # if tagline:
-                #    st.session_state.tagline = tagline
-        
-        
-        # Update session state only when the button is clicked
+            # Only keep 'Add automatic subtitles' option
+            st.session_state.add_subtitles = st.checkbox("Add automatic subtitles", value=st.session_state.add_subtitles, key="add_subtitles_checkbox")
         if st.button("Generate Teaser →", key="generate_btn", use_container_width=True):
             st.session_state.current_step = "processing"
             st.rerun()
-        
         st.markdown("</div>", unsafe_allow_html=True)
+
+    # All music/branding UI code removed as requested
 
 ########### Groq LLM wrapper (optional) ###########
 class GroqLLM:
-    def __init__(self, model: str = "llama-3.1-8b-instant", temperature: float = 0.2, max_tokens: int = 800, api_key: str = None):
+    def __init__(self, model: str = "llama-3.1-8b-instant", temperature: float = 0.2, max_tokens: int = 800, api_key: Optional[str] = None):
         try:
             from langchain_groq import ChatGroq
         except Exception as e:
             raise RuntimeError("langchain_groq not installed or import failed.") from e
 
+        # Set API key in environment variable before initializing ChatGroq
         groq_api_key = "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" or os.getenv("GROQ_API_KEY")
         if not groq_api_key:
             raise RuntimeError("GROQ_API_KEY missing. Set it in env or pass as argument.")
+        os.environ["GROQ_API_KEY"] = groq_api_key
         self.llm = ChatGroq(
-            groq_api_key=groq_api_key,
-            model_name=model,
+            model=model,
             temperature=temperature,
             max_tokens=max_tokens,
         )
@@ -466,8 +446,7 @@ def show_output_options():
              #   st.subheader("Additional Options")
                 
                 # Use unique keys for these widgets
-              #  music_option = st.checkbox("Add background music", value=st.session_state.add_music, key="music_option_checkbox")
-               # if music_option:
+              # Removed background music option as requested
                 #    music_style = st.selectbox("Music style:", ["Upbeat", "Corporate", "Inspiring", "Neutral"], key="music_style_select")
                     
                 #subs_option = st.checkbox("Customize subtitles", value=st.session_state.add_subtitles, key="subs_option_checkbox")
