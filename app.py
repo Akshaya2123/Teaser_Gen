@@ -389,17 +389,239 @@ def cleanup_temp_files():
         except: pass
 
 ########### Streamlit UI (front) ###########
-st.set_page_config(page_title="AI Video Teaser Generator", page_icon="🎬", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="AI Video Teaser Generator", page_icon="🎬", layout="wide", initial_sidebar_state="collapsed")
 
 def load_css():
-    try:
-        with open("style.css") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        st.markdown("""<style>
-            .stApp { font-family: 'Inter', sans-serif; background: #ffffff; color: #1a1a1a; }
-            .app-title { font-size: 2.4rem; font-weight: 700; color: #1a1a1a; }
-        </style>""", unsafe_allow_html=True)
+    st.markdown("""
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        .stApp {
+            background: #f8fafc;
+            color: #0f172a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .block-container {
+            max-width: 1120px !important;
+            padding-top: 1.6rem !important;
+            padding-bottom: 2rem !important;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            padding: 28px 0 18px;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 34px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            color: #0f172a;
+            white-space: nowrap;
+            transform: translateY(2px);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .nav-links a {
+            color: #64748b;
+            text-decoration: none;
+            padding: 4px 0;
+        }
+
+        .nav-links a.active,
+        .nav-links a:hover {
+            color: #0f172a;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            white-space: nowrap;
+        }
+
+        .nav-login {
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.08fr 0.92fr;
+            gap: 28px;
+            align-items: stretch;
+            margin-top: 4px;
+        }
+
+        .hero-card,
+        .hero-visual,
+        .feature-card,
+        .panel-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+
+        .hero-card {
+            min-height: 372px;
+            padding: 54px 56px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .hero-card h1 {
+            font-size: clamp(2.6rem, 5vw, 4rem);
+            line-height: 0.98;
+            letter-spacing: -0.06em;
+            margin: 0 0 22px;
+            color: #0f172a;
+            max-width: none;
+        }
+
+        .hero-card p {
+            font-size: 16px;
+            line-height: 1.7;
+            color: #64748b;
+            max-width: 520px;
+            margin: 0 0 28px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .hero-visual {
+            min-height: 372px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 36px;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+        }
+
+        .hero-visual .icon-shell {
+            width: 118px;
+            height: 118px;
+            border-radius: 28px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.14) 0%, rgba(118, 75, 162, 0.2) 100%);
+            margin-bottom: 28px;
+        }
+
+        .hero-visual .icon-shell span {
+            font-size: 58px;
+            color: #4f46e5;
+        }
+
+        .hero-visual .label {
+            color: #334155;
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 54px 0 26px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 24px;
+            margin-top: 18px;
+        }
+
+        .feature-card {
+            padding: 26px;
+            min-height: 180px;
+        }
+
+        .feature-badge {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: #eef2ff;
+            color: #4f46e5;
+            font-size: 20px;
+            margin-bottom: 18px;
+        }
+
+        .feature-card h3 {
+            margin: 0 0 10px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .feature-card p {
+            margin: 0;
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .panel-card {
+            padding: 28px;
+            margin-top: 28px;
+        }
+
+        .stButton > button {
+            border-radius: 10px !important;
+            border: 1px solid transparent !important;
+            font-weight: 700 !important;
+            padding: 0.72rem 1.1rem !important;
+            box-shadow: none !important;
+        }
+
+        .stButton > button[kind="primary"] {
+            background: #4f46e5 !important;
+            color: white !important;
+        }
+
+        .stButton > button[kind="secondary"] {
+            background: white !important;
+            color: #0f172a !important;
+            border-color: #dbe2ea !important;
+        }
+
+        .stButton > button:hover {
+            border-color: #cbd5e1 !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
 def init_session_state():
     if "current_step" not in st.session_state: st.session_state.current_step = "welcome"
@@ -412,16 +634,100 @@ def init_session_state():
     if "add_music" not in st.session_state: st.session_state.add_music = True
     if "analysis" not in st.session_state: st.session_state.analysis = None
 
+    page = st.query_params.get("page", None)
+    if isinstance(page, list):
+        page = page[0] if page else None
+    route_map = {
+        "welcome": "welcome",
+        "video_input": "video_input",
+        "preferences": "preferences",
+        "processing": "processing",
+        "output": "output",
+    }
+    if page in route_map:
+        st.session_state.current_step = route_map[page]
+
+def show_top_nav():
+    st.markdown(
+        """
+        <div class="topbar">
+            <div class="brand">TeaserGeneration</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def render_back_row(label, target_step, key):
+    left_ratio = 3 if len(label) > 2 else 1
+    left_col, _ = st.columns([left_ratio, 12])
+    with left_col:
+        if st.button(label, key=key, use_container_width=(len(label) <= 2)):
+            st.session_state.current_step = target_step
+            st.query_params["page"] = target_step
+            st.rerun()
+
 def show_welcome():
-    st.markdown("<h1 class='app-title'>AI Video Teaser Generator</h1>", unsafe_allow_html=True)
-    st.write("Transform your videos into compelling teasers with AI. Upload your content, customize preferences, and create engaging previews in minutes.")
-    st.write("---")
-    if st.button("Create Your Teaser Now", key="start_creation"):
-        st.session_state.current_step = "video_input"
-        st.rerun()
+    left, right = st.columns([1.08, 0.92], gap="large")
+
+    with left:
+        st.markdown("""
+        <div class="hero-card">
+            <h1>Teaser<br>Generation</h1>
+            <p>Transform your videos into engaging teaser clips using AI-powered scene detection, intelligent editing, and polished pacing.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with right:
+        st.markdown("""
+        <div class="hero-visual">
+            <div class="icon-shell"><span>📄</span></div>
+            <div class="label">AI-Powered Video Processing</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    primary, secondary = st.columns(2, gap="large")
+    with primary:
+        if st.button("Get Started", key="start_creation", use_container_width=True):
+            st.session_state.current_step = "video_input"
+            st.query_params["page"] = "video_input"
+            st.rerun()
+    with secondary:
+        if st.button("See how it works", key="see_workflow", use_container_width=True, type="secondary"):
+            st.info("How it works: Start by adding your video, choose your preferred style and duration, then let the app create a short teaser for you. Finally, review the result and download it when you are happy.")
+
+    st.markdown("<div class='section-title'>Why Choose AI Teaser?</div>", unsafe_allow_html=True)
+    
+    feature_1, feature_2, feature_3 = st.columns(3, gap="large")
+    with feature_1:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-badge">⚡</div>
+            <h3>AI-Powered</h3>
+            <p>Smart scene detection automatically identifies the strongest moments from your footage.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with feature_2:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-badge">⏱️</div>
+            <h3>Fast Processing</h3>
+            <p>Generate professional teaser clips in minutes with a streamlined review flow.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with feature_3:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-badge">🎛️</div>
+            <h3>Customizable Output</h3>
+            <p>Choose duration, tone, and style to match your brand and audience.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 def handle_video_input():
+    render_back_row("←", "welcome", "upload_back")
     st.header("Step 1: Provide Your Video")
     input_method = st.radio("Choose input method:", ["Upload a video file", "Paste YouTube URL"], horizontal=True, key="input_method")
     video_source = None
@@ -450,9 +756,11 @@ def handle_video_input():
     if video_source:
         if st.button("Continue to Preferences →"):
             st.session_state.current_step = "preferences"
+            st.query_params["page"] = "preferences"
             st.rerun()
 
 def get_user_preferences():
+    render_back_row("←", "video_input", "prefs_back")
     st.header("Step 2: Teaser Preferences")
     col1 = st.columns(1)[0]
     with col1:
@@ -468,14 +776,24 @@ def get_user_preferences():
     if st.button("Generate Teaser →", key="generate_btn"):
         st.session_state.add_subtitles = add_subtitles_temp
         st.session_state.current_step = "processing"
+        st.query_params["page"] = "processing"
         st.rerun()
 
 
 def process_video():
+    render_back_row("←", "preferences", "process_back")
     st.header("Generating Your Teaser")
     if _IMPORT_ERROR is not None:
         st.error(f"Local dependencies missing or failed to import: {_IMPORT_ERROR}")
         st.stop()
+
+    if not st.session_state.video_path:
+        st.warning("Please upload a video first.")
+        if st.button("Go to Upload", key="process_missing_video"):
+            st.session_state.current_step = "video_input"
+            st.query_params["page"] = "video_input"
+            st.rerun()
+        return
 
     progress_bar = st.progress(0)
     status_text = st.empty()
@@ -575,67 +893,64 @@ def process_video():
     progress_bar.progress(100)
     time.sleep(0.5)
     st.session_state.current_step = "output"
+    st.query_params["page"] = "output"
     st.rerun()
 
 
 def show_output_options():
+    render_back_row("Home Page", "welcome", "results_home")
     st.header("Your Teaser is Ready!")
     teaser_path = st.session_state.teaser_path
+
     if teaser_path and os.path.exists(teaser_path):
         st.video(teaser_path)
 
-        st.download_button("Download Teaser", data=open(teaser_path,"rb").read(), file_name="ai_teaser.mp4", mime="video/mp4")
-        if st.button("Show video analysis & clips"):
-            if st.session_state.analysis:
-                for clip in st.session_state.analysis:
-                    st.write(f"Clip {clip['clip_id']}: {clip['start_time']} - {clip['end_time']}, score {clip['score_hint']:.3f}")
-                    st.write("Visual caption:", clip.get("visual_caption"))
-                    st.write("Transcript (excerpt):", (clip.get("transcript") or "")[:500])
-                    st.markdown("---")
-        st.markdown("### Social caption")
-        if st.button("Generate Social Media Caption"):
-            st.text_area("Suggested Caption:", st.session_state.caption, height=120)
+        action_col_1, action_col_2, action_col_3 = st.columns(3)
+        with action_col_1:
+            with open(teaser_path, "rb") as f:
+                st.download_button(
+                    "Download Teaser",
+                    data=f.read(),
+                    file_name="ai_teaser.mp4",
+                    mime="video/mp4",
+                    use_container_width=True,
+                )
 
-        
+        with action_col_2:
+            show_analysis = st.button("Show Analysis", use_container_width=True)
 
-        if st.button("Start Over"):
-            cleanup_temp_files()
-            for key in list(st.session_state.keys()):
-                if key != "current_step":
-                    del st.session_state[key]
-            st.session_state.current_step = "welcome"
-            st.rerun()
+        with action_col_3:
+            if st.button("Start Over", use_container_width=True):
+                cleanup_temp_files()
+                for key in list(st.session_state.keys()):
+                    if key != "current_step":
+                        del st.session_state[key]
+                st.session_state.current_step = "welcome"
+                st.query_params["page"] = "welcome"
+                st.rerun()
+
+        if show_analysis and st.session_state.analysis:
+            st.markdown("### Video Analysis")
+            for clip in st.session_state.analysis:
+                st.write(f"Clip {clip['clip_id']}: {clip['start_time']} - {clip['end_time']}, score {clip['score_hint']:.3f}")
+                st.write("Visual caption:", clip.get("visual_caption"))
+                st.write("Transcript (excerpt):", (clip.get("transcript") or "")[:500])
+                st.markdown("---")
+        elif show_analysis:
+            st.info("No analysis available.")
 
     else:
         st.error("Teaser file not found. Please try again.")
         if st.button("Back to start"):
+            cleanup_temp_files()
             st.session_state.current_step = "welcome"
+            st.query_params["page"] = "welcome"
             st.rerun()
-    st.markdown("### LLM Video Assistant")
-    st.write("Ask the assistant about the generated video (summaries, hooks). Requires GROQ_API_KEY in env.")
-    llm_input = st.text_input("Ask a question about the video analysis:")
-    if st.button("Ask LLM"):
-        if not st.session_state.analysis:
-            st.error("No analysis present.")
-        else:
-            try:
-                llm = GroqLLM()
-                with open("video_analysis.json") as f:
-                    analysis_text = f.read()
-                # truncate if too large
-                if len(analysis_text.split()) > 3000:
-                    analysis_text = " ".join(analysis_text.split()[:3000])
-                system_prompt = "You are an assistant that answers questions about the video metadata and transcript."
-                user_query = f"Video analysis JSON:\n{analysis_text}\n\nQuestion: {llm_input}"
-                res = llm.chat(system_prompt, user_query)
-                st.success("LLM response:")
-                st.write(res)
-            except Exception as e:
-                st.error(f"LLM query failed: {e}")
 
 def main():
     load_css()
     init_session_state()
+    show_top_nav()
 
     if st.session_state.current_step == "welcome":
         show_welcome()
